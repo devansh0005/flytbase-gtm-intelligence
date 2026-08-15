@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Enterprise Charcoal & Slate Theme */
+  --background: 224 25% 4%;       /* #08090c deep dark charcoal */
+  --foreground: 210 20% 96%;       /* #f1f3f6 clean off-white */
+
+  --card: 222 18% 8%;             /* #101318 dark surface */
+  --card-foreground: 210 20% 96%;
+
+  --popover: 222 18% 8%;
+  --popover-foreground: 210 20% 96%;
+
+  --primary: 210 20% 96%;          /* Crisp light button / action */
+  --primary-foreground: 224 25% 6%;
+
+  --secondary: 220 15% 13%;        /* #191d24 subtle dark panel */
+  --secondary-foreground: 210 15% 85%;
+
+  --muted: 220 15% 11%;            /* #15181f */
+  --muted-foreground: 218 10% 60%;  /* #8f96a3 readable muted text */
+
+  --accent: 220 15% 15%;
+  --accent-foreground: 210 20% 96%;
+
+  --destructive: 0 62% 40%;
+  --destructive-foreground: 210 20% 98%;
+
+  --border: 220 14% 15%;           /* #20242d clean subtle border */
+  --input: 220 14% 15%;
+  --ring: 218 10% 40%;
+
+  --radius: 0.375rem;              /* Crisp 6px corners */
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars for high density tables and drawers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--secondary));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border));
+}

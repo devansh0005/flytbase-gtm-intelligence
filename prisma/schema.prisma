@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id              String               @id // slug e.g. "northline-grid"
+  accountId       String               // CRM ID e.g. "ACC-08301"
+  name            String
+  folder          String
+  category        String               // "pre-sale", "newly-sold-onboarding", "established", "renewal-focused", "churned"
+  categoryFolder  String
+  vertical        String
+  region          String
+  arr             Float                @default(0)
+  docks           String
+  health          String               // raw CRM health label
+  sentiment       String               // raw CRM sentiment label
+  tier            String
+  csOwner         String
+  seOwner         String
+  championTagged  String?
+  lastSyncedAt    DateTime             @default(now())
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  intelligence    AccountIntelligence?
+  usageSnapshots  UsageSnapshot[]
+  documents       DocumentRecord[]
+  evidence        Evidence[]
+  changeEvents    ChangeEvent[]
+}
+
+model AccountIntelligence {
+  id                   String    @id @default(cuid())
+  accountId            String    @unique
+  account              Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  reconciledHealth     String?   // "HEALTHY", "WATCH", "AT_RISK", "CRITICAL", "CHURNED"
+  healthScore          Float?    // 0 to 100
+  healthRationale      String?
+  topRiskFactors       String?   // JSON string array
+  contradictions       String?   // JSON string array
+  sentimentScore       String?   // "POSITIVE", "NEUTRAL", "NEGATIVE"
+  renewalRiskStatus    String?   // "SECURE", "UPCOMING_CRITICAL", "PAST_DUE", "NOT_APPLICABLE"
+  daysToRenewal        Int?      // deterministic or parsed days
+  expansionOpportunity String?   // "HIGH", "MEDIUM", "LOW", "TRAP", "NONE"
+  expansionPotential   String?   // explicitly supported upside (e.g. "15+ docks tender", "$14,499 pilot")
+  expansionDetails     String?   // JSON
+  winBackViability     String?   // "HIGH", "MODERATE", "LOW", "NOT_APPLICABLE"
+  winBackDetails       String?   // JSON
+  churnRootCause       String?
+  operationalBlockers  String?   // JSON array
+  keyStakeholders      String?   // JSON array
+  nextBestActions      String?   // JSON array
+  priorityScore        Float?    // 0 to 100 (deterministic)
+  priorityTier         String?   // "CRITICAL", "HIGH", "MEDIUM", "LOW"
+  priorityExplanation  String?
+  deterministicSignals String?   // JSON object of all calculated deterministic metrics
+  
+  updatedAt            DateTime  @updatedAt
+}
+
+model UsageSnapshot {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  month       String   // "YYYY-MM"
+  flightHours Float
+  missions    Int
+  recordedAt  DateTime @default(now())
+
+  @@unique([accountId, month])
+}
+
+model DocumentRecord {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fileName    String
+  title       String
+  type        String
+  date        String?
+  contentHash String
+  rawContent  String?
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([accountId, fileName])
+}
+
+model Evidence {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  signalType  String   // "HEALTH_CONTRADICTION", "RENEWAL_URGENCY", "USAGE_COLLAPSE", "EXPANSION_SIGNAL", "CHURN_ANALYSIS", "STAKEHOLDER_EVIDENCE", "ACTION_RATIONALE"
+  sourceType  String   // "TRANSCRIPT", "EMAIL", "TICKET", "NOTES", "USAGE_TELEMETRY", "CRM_METADATA", "RENEWAL_TRACKER"
+  sourceDoc   String?  // filename e.g. "07_transcript_renewal_procurement_call.md"
+  snippet     String   // verbatim excerpt from source
+  confidence  Float    @default(1.0)
+  createdAt   DateTime @default(now())
+}
+
+model ChangeEvent {
+  id                     String    @id @default(cuid())
+  accountId              String
+  account                Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  detectedAt             DateTime  @default(now())
+  entityType             String    // "ACCOUNT", "DOCUMENT", "USAGE"
+  changeType             String    // "CREATED", "UPDATED", "REMOVED"
+  entityIdentifier       String    // filename, month, or "account-profile"
+  previousHash           String?
+  newHash                String?
+  previousValue          String?   // JSON summary of previous state
+  newValue               String?   // JSON summary of new state
+  impactSummary          String?   // Human-readable impact description
+  intelligenceRecomputed Boolean   @default(false)
+  oldHealth              String?
+  newHealth              String?
+  oldUrgency             String?
+  newUrgency             String?
+  oldPriorityScore       Float?
+  newPriorityScore       Float?
+  recomputedAt           DateTime?
+
+  @@index([accountId, detectedAt])
+}
+
+model SyncState {
+  id                  String    @id @default("singleton")
+  lastSyncStartedAt   DateTime  @default(now())
+  lastSyncCompletedAt DateTime?
+  status              String    @default("IDLE") // "IDLE", "SYNCING", "ERROR"
+  totalAccountsSynced Int       @default(0)
+  totalDocsSynced     Int       @default(0)
+  changesDetected     Int       @default(0)
+  lastManifestHash    String?
+  errorMessage        String?
+  updatedAt           DateTime  @updatedAt
+}
